@@ -2,13 +2,12 @@ name: Fintables Haber Toplayici
 
 on:
   schedule:
-    - cron: '*/20 6-16 * * 1-5'
+    - cron: '*/20 6-16 * * 1-5'  # Haftaici 09:00-19:00 TR saati her 20 dk
   workflow_dispatch:
 
 jobs:
   haber-topla:
     runs-on: ubuntu-latest
-
     steps:
       - name: Kodu indir
         uses: actions/checkout@v4
@@ -19,9 +18,25 @@ jobs:
           python-version: '3.11'
 
       - name: Kutuphaneleri yukle
-        run: pip install curl_cffi gspread google-auth
+        run: pip install curl_cffi gspread google-auth tweepy
 
       - name: Haberleri cek ve Sheets'e yaz
         env:
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: python fintables_sheets.py
+
+      - name: Tweet at (sadece 09:00-15:00 arasi)
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+        run: |
+          SAAT=$(date -u +%H)
+          if [ "$SAAT" -ge 6 ] && [ "$SAAT" -lt 12 ]; then
+            echo "Tweet saati, calistirilıyor..."
+            python tweet_at.py
+          else
+            echo "Tweet saati degil (09:00-15:00 TR arasi), atlanıyor."
+          fi
